@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SplitEase">
+<meta name="theme-color" content="#6c63ff">
+<title>SplitEase – Expense Manager</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f6f5f1;
+  --bg2: #ffffff;
+  --bg3: #edece7;
+  --surface: #ffffff;
+  --border: rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.14);
+  --text: #1a1a2e;
+  --text2: #6b6b80;
+  --text3: #a0a0b0;
+  --accent: #6c63ff;
+  --accent-light: #ede9ff;
+  --green: #16a34a;
+  --green-light: #dcfce7;
+  --red: #dc2626;
+  --red-light: #fee2e2;
+  --amber: #d97706;
+  --amber-light: #fef3c7;
+  --blue: #2563eb;
+  --blue-light: #dbeafe;
+  --teal: #0d9488;
+  --teal-light: #ccfbf1;
+  --pink: #db2777;
+  --pink-light: #fce7f3;
+  --r: 16px;
+  --rsm: 10px;
+  --font: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --nav: 72px;
+  --hd: 64px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e0e1c;
+    --bg2: #161626;
+    --bg3: #1d1d2e;
+    --surface: #1d1d2e;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #eeeeff;
+    --text2: #8888a8;
+    --text3: #55556a;
+    --accent-light: #26245a;
+    --green-light: #052e16;
+    --red-light: #450a0a;
+    --amber-light: #451a03;
+    --blue-light: #1e3a5f;
+    --teal-light: #042f2e;
+    --pink-light: #500724;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;font-family:var(--font);background:var(--bg);color:var(--text)}
+body{display:flex;flex-direction:column}
+/* HEADER */
+.hd{height:var(--hd);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;position:sticky;top:0;z-index:100}
+.logo{width:38px;height:38px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.app-name{font-size:19px;font-weight:700;letter-spacing:-0.5px}
+.app-name span{color:var(--accent)}
+.hd-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.drive-pill{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:var(--font);transition:all .15s}
+.drive-pill.off{background:var(--bg3);color:var(--text2)}
+.drive-pill.on{background:#16a34a22;color:var(--green)}
+/* MAIN */
+.main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav) + 8px)}
+.page{display:none;padding:14px 14px 0;max-width:600px;margin:0 auto}
+.page.active{display:block}
+/* NAV */
+.nav{height:var(--nav);background:var(--surface);border-top:1px solid var(--border);display:flex;position:fixed;bottom:0;left:0;right:0;z-index:100;padding-bottom:env(safe-area-inset-bottom,0)}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;color:var(--text3);cursor:pointer;transition:color .15s;font-family:var(--font);padding:0}
+.ni.active{color:var(--accent)}
+.ni-icon{font-size:22px}
+.ni-label{font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase}
+/* CARDS */
+.card{background:var(--surface);border-radius:var(--r);padding:18px;border:1px solid var(--border);margin-bottom:12px}
+.card-inner{background:var(--surface);border-radius:var(--rsm);border:1px solid var(--border)}
+/* SECTION */
+.sh{display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px}
+.st{font-size:15px;font-weight:700;letter-spacing:-.2px}
+.sa{font-size:13px;color:var(--accent);font-weight:600;cursor:pointer;background:none;border:none;font-family:var(--font)}
+/* SUMMARY GRID */
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.sc{background:var(--surface);border-radius:var(--r);padding:16px;border:1px solid var(--border)}
+.sl{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px}
+.sv{font-size:22px;font-weight:700;letter-spacing:-.5px}
+.sv.a{color:var(--accent)}.sv.g{color:var(--green)}.sv.r{color:var(--red)}
+/* GROUP CARD */
+.gc{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.gc:active{transform:scale(.98)}
+.ga{width:46px;height:46px;border-radius:14px;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.gi{flex:1;min-width:0}
+.gn{font-size:16px;font-weight:700;margin-bottom:2px}
+.gm{font-size:12px;color:var(--text2)}
+.gamt{text-align:right;flex-shrink:0}
+.gamt .a{font-size:16px;font-weight:700}.gamt .l{font-size:11px;color:var(--text2)}
+/* EXPENSE ITEM */
+.ei{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--border)}
+.ei:last-child{border-bottom:none}
+.eic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.eii{flex:1;min-width:0}
+.eit{font-size:14px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eim{font-size:12px;color:var(--text2)}
+.eir{text-align:right;flex-shrink:0}
+.eia{font-size:14px;font-weight:700}
+.eip{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;margin-top:3px;display:inline-block}
+.p-y{background:var(--green-light);color:var(--green)}.p-n{background:var(--red-light);color:var(--red)}
+/* BUTTONS */
+.btn{padding:13px 22px;border-radius:12px;border:none;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn-p{background:var(--accent);color:#fff}.btn-p:active{opacity:.85}
+.btn-o{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+.btn-g{background:var(--bg3);color:var(--text2)}
+.btn-fw{width:100%}
+/* FAB */
+.fab{position:fixed;right:18px;bottom:calc(var(--nav) + 14px);width:56px;height:56px;border-radius:18px;background:var(--accent);border:none;color:#fff;font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px rgba(108,99,255,.45);z-index:50;transition:all .15s;font-family:var(--font)}
+.fab:active{transform:scale(.93)}
+/* MODAL */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
+.mbg.open{opacity:1;pointer-events:all}
+.sheet{background:var(--surface);border-radius:24px 24px 0 0;padding:14px 18px 36px;width:100%;max-height:94vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1)}
+.mbg.open .sheet{transform:translateY(0)}
+.handle{width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 18px}
+.stitle{font-size:20px;font-weight:700;letter-spacing:-.5px;margin-bottom:18px}
+/* FORM */
+.fg{margin-bottom:14px}
+.fl{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;display:block}
+.fi{width:100%;padding:13px 14px;border-radius:var(--rsm);border:1.5px solid var(--border2);background:var(--bg3);color:var(--text);font-family:var(--font);font-size:15px;transition:all .15s;outline:none;-webkit-appearance:none;appearance:none}
+.fi:focus{border-color:var(--accent);background:var(--surface)}
+select.fi{cursor:pointer}
+textarea.fi{min-height:72px;resize:vertical}
+.camount{display:flex;gap:8px}.camount .fi:first-child{width:100px;flex-shrink:0}
+.camount .fi:last-child{flex:1}
+/* TOGGLE */
+.tg{display:flex;background:var(--bg3);border-radius:var(--rsm);padding:3px;gap:3px}
+.to{flex:1;padding:9px 6px;border-radius:8px;border:none;background:none;font-family:var(--font);font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap}
+.to.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+/* CHIPS */
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{padding:7px 13px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg3);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px}
+.chip.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
+/* MEMBERS */
+.mr{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.mr:last-child{border-bottom:none}
+.av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.av-1{background:var(--accent-light);color:var(--accent)}
+.av-2{background:var(--green-light);color:var(--green)}
+.av-3{background:var(--amber-light);color:var(--amber)}
+.av-4{background:var(--blue-light);color:var(--blue)}
+.av-5{background:var(--pink-light);color:var(--pink)}
+.av-6{background:var(--teal-light);color:var(--teal)}
+.mn{flex:1;font-size:14px;font-weight:500}
+.msh .fi{padding:8px 10px;font-size:13px;text-align:right;width:90px}
+.mck{width:28px;height:28px;border-radius:8px;border:2px solid var(--border2);background:var(--bg3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-size:13px}
+.mck.on{background:var(--accent);border-color:var(--accent);color:#fff}
+/* BALANCE */
+.bi{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}
+.bi:last-child{border-bottom:none}
+.bt{flex:1;font-size:14px}
+.ba{font-size:14px;font-weight:700;color:var(--red)}
+/* CHART */
+.cw{position:relative;width:100%}
+/* EMPTY */
+.empty{text-align:center;padding:44px 20px}
+.empty-i{font-size:48px;margin-bottom:14px}
+.empty-t{font-size:17px;font-weight:700;margin-bottom:8px}
+.empty-s{font-size:14px;color:var(--text2);line-height:1.6}
+/* TOAST */
+.toast{position:fixed;top:76px;left:50%;transform:translateX(-50%) translateY(-16px);background:var(--text);color:var(--bg);padding:11px 20px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;transition:all .3s;z-index:999;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* SETTINGS */
+.sr{display:flex;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.sr:last-child{border-bottom:none}
+.si{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.sx{flex:1}
+.st2{font-size:15px;font-weight:600}
+.ss{font-size:12px;color:var(--text2);margin-top:2px}
+.sa2{color:var(--text3);font-size:18px}
+/* Scrollbar */
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+<header class="hd">
+  <div class="logo">💰</div>
+  <div class="app-name">Split<span>Ease</span></div>
+  <div class="hd-right">
+    <button class="drive-pill off" id="driveBtn" onclick="handleDriveConnect()">
+      <span id="driveIco">📂</span>
+      <span id="driveLbl">Drive</span>
+    </button>
+  </div>
+</header>
+
+<main class="main">
+  <!-- HOME -->
+  <div class="page active" id="page-home">
+    <div class="sg">
+      <div class="sc"><div class="sl">Total Spent</div><div class="sv a" id="hTotal">₹0</div></div>
+      <div class="sc"><div class="sl">You Owe</div><div class="sv r" id="hOwe">₹0</div></div>
+      <div class="sc"><div class="sl">Owed to You</div><div class="sv g" id="hOwed">₹0</div></div>
+      <div class="sc"><div class="sl">Groups</div><div class="sv" id="hGroups">0</div></div>
+    </div>
+    <div class="sh"><div class="st">Your Groups</div><button class="sa" onclick="openSheet('gs')">+ New Group</button></div>
+    <div id="groupsHome"></div>
+    <div class="sh"><div class="st">Recent Expenses</div></div>
+    <div class="card" id="recentHome" style="padding:0 18px;display:none"></div>
+  </div>
+
+  <!-- GROUPS -->
+  <div class="page" id="page-groups">
+    <div class="sh" style="margin-top:4px"><div class="st">All Groups</div><button class="sa" onclick="openSheet('gs')">+ New</button></div>
+    <div id="groupsAll"></div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="page" id="page-charts">
+    <div class="sh" style="margin-top:4px">
+      <div class="st">Spending Overview</div>
+      <select class="fi" style="width:auto;padding:5px 10px;font-size:12px" id="chartFilter" onchange="renderCharts()">
+        <option value="all">All Groups</option>
+      </select>
+    </div>
+    <div class="card"><div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px">BY CATEGORY</div><div class="cw" style="height:210px"><canvas id="catC"></canvas></div></div>
+    <div class="card"><div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px">PAID vs UNPAID</div><div class="cw" style="height:190px"><canvas id="paidC"></canvas></div></div>
+    <div class="card"><div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px">MONTHLY TREND</div><div class="cw" style="height:190px"><canvas id="trendC"></canvas></div></div>
+    <div class="card"><div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px">PER MEMBER</div><div class="cw" style="height:190px"><canvas id="memberC"></canvas></div></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <div class="sh" style="margin-top:4px"><div class="st">Settings</div></div>
+    <div class="card" style="padding:0 18px">
+      <div class="sr" onclick="handleDriveConnect()">
+        <div class="si" style="background:var(--blue-light)">📂</div>
+        <div class="sx"><div class="st2">Google Drive Sync</div><div class="ss" id="driveSetSub">Not connected</div></div>
+        <div class="sa2">›</div>
+      </div>
+      <div class="sr" onclick="exportCSV()">
+        <div class="si" style="background:var(--green-light)">📊</div>
+        <div class="sx"><div class="st2">Export to CSV</div><div class="ss">Download all expenses</div></div>
+        <div class="sa2">›</div>
+      </div>
+      <div class="sr" onclick="changeCurrency()">
+        <div class="si" style="background:var(--accent-light)">💱</div>
+        <div class="sx"><div class="st2">Default Currency</div><div class="ss" id="currSub">INR – ₹</div></div>
+        <div class="sa2">›</div>
+      </div>
+      <div class="sr" onclick="syncDrive()">
+        <div class="si" style="background:var(--teal-light)">🔄</div>
+        <div class="sx"><div class="st2">Sync to Drive</div><div class="ss" id="syncSub">Last sync: Never</div></div>
+        <div class="sa2">›</div>
+      </div>
+    </div>
+
+    <div class="sh"><div class="st">Install App</div></div>
+    <div class="card" style="font-size:14px;color:var(--text2);line-height:1.8">
+      <strong style="color:var(--text)">📱 Android:</strong> Open in Chrome → Menu (⋮) → "Add to Home Screen"<br>
+      <strong style="color:var(--text)">🍎 iPhone/iPad:</strong> Open in Safari → Share (↑) → "Add to Home Screen"<br><br>
+      <span style="font-size:13px">The app works offline and syncs when online.</span>
+    </div>
+
+    <div class="sh"><div class="st">About</div></div>
+    <div class="card" style="font-size:13px;color:var(--text2);line-height:1.7">
+      <strong style="color:var(--text)">SplitEase v1.0</strong><br>
+      Group expense manager. All data stays private in your Google Drive or on your device.
+    </div>
+  </div>
+</main>
+
+<nav class="nav">
+  <button class="ni active" onclick="goTo('home')" id="nav-home"><div class="ni-icon">🏠</div><div class="ni-label">Home</div></button>
+  <button class="ni" onclick="goTo('groups')" id="nav-groups"><div class="ni-icon">👥</div><div class="ni-label">Groups</div></button>
+  <button class="ni" onclick="goTo('charts')" id="nav-charts"><div class="ni-icon">📊</div><div class="ni-label">Charts</div></button>
+  <button class="ni" onclick="goTo('settings')" id="nav-settings"><div class="ni-icon">⚙️</div><div class="ni-label">Settings</div></button>
+</nav>
+
+<button class="fab" onclick="openAddExpense()" title="Add Expense">+</button>
+<div class="toast" id="toast"></div>
+
+<!-- GROUP SHEET -->
+<div class="mbg" id="gs">
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="stitle">Create Group</div>
+    <div class="fg"><label class="fl">Group Name</label><input class="fi" id="gName" placeholder="e.g. Goa Trip, Team Lunch..." maxlength="50"></div>
+    <div class="fg">
+      <label class="fl">Emoji</label>
+      <div class="chips" id="emojiPick"></div>
+    </div>
+    <div class="fg">
+      <label class="fl">Add Members <span style="color:var(--text3);font-weight:400">(press Enter)</span></label>
+      <input class="fi" id="memInput" placeholder="Type name and press Enter..." onkeydown="addMemKey(event)">
+      <div id="memChips" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:10px"></div>
+    </div>
+    <button class="btn btn-p btn-fw" onclick="saveGroup()" style="margin-top:8px">Create Group</button>
+  </div>
+</div>
+
+<!-- EXPENSE SHEET -->
+<div class="mbg" id="es">
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="stitle">Add Expense</div>
+    <div class="fg"><label class="fl">Group</label><select class="fi" id="eGroup" onchange="updateExpenseMembers()"></select></div>
+    <div class="fg"><label class="fl">Title</label><input class="fi" id="eTitle" placeholder="e.g. Hotel, Dinner, Taxi..."></div>
+    <div class="fg"><label class="fl">Description (optional)</label><textarea class="fi" id="eDesc" placeholder="Notes..." rows="2"></textarea></div>
+    <div class="fg">
+      <label class="fl">Amount</label>
+      <div class="camount">
+        <select class="fi" id="eCurr">
+          <option value="INR">₹ INR</option><option value="USD">$ USD</option><option value="EUR">€ EUR</option>
+          <option value="GBP">£ GBP</option><option value="AED">د AED</option><option value="SGD">S$ SGD</option>
+          <option value="JPY">¥ JPY</option><option value="CAD">C$ CAD</option><option value="AUD">A$ AUD</option>
+          <option value="CHF">₣ CHF</option><option value="MYR">RM MYR</option><option value="THB">฿ THB</option>
+        </select>
+        <input class="fi" type="number" id="eAmt" placeholder="0.00" min="0" step="0.01" onchange="renderSplitList()">
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Category</label>
+      <div class="chips" id="catChips">
+        <div class="chip active" data-v="Food & Dining" onclick="pickCat(this)">🍕 Food</div>
+        <div class="chip" data-v="Travel" onclick="pickCat(this)">✈️ Travel</div>
+        <div class="chip" data-v="Stay" onclick="pickCat(this)">🏨 Stay</div>
+        <div class="chip" data-v="Shopping" onclick="pickCat(this)">🛒 Shop</div>
+        <div class="chip" data-v="Entertainment" onclick="pickCat(this)">🎉 Fun</div>
+        <div class="chip" data-v="Transport" onclick="pickCat(this)">🚗 Transport</div>
+        <div class="chip" data-v="Utilities" onclick="pickCat(this)">💡 Bills</div>
+        <div class="chip" data-v="Medical" onclick="pickCat(this)">💊 Medical</div>
+        <div class="chip" data-v="Other" onclick="pickCat(this)">📦 Other</div>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Paid By</label><select class="fi" id="ePaidBy"></select></div>
+    <div class="fg">
+      <label class="fl">Payment Status</label>
+      <div class="tg" id="paidTg">
+        <button class="to active" data-v="paid" onclick="pickToggle(this,'paidTg')">✅ Paid</button>
+        <button class="to" data-v="unpaid" onclick="pickToggle(this,'paidTg')">⏳ Unpaid</button>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Split Method</label>
+      <div class="tg" id="splitTg">
+        <button class="to active" data-v="equal" onclick="pickToggle(this,'splitTg');setSplitMode('equal')">= Equal</button>
+        <button class="to" data-v="custom" onclick="pickToggle(this,'splitTg');setSplitMode('custom')">✏️ Custom</button>
+        <button class="to" data-v="pct" onclick="pickToggle(this,'splitTg');setSplitMode('pct')">% Percent</button>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Split Between</label><div id="splitList"></div></div>
+    <button class="btn btn-p btn-fw" onclick="saveExpense()" style="margin-top:8px">Add Expense</button>
+  </div>
+</div>
+
+<!-- GROUP DETAIL SHEET -->
+<div class="mbg" id="gd">
+  <div class="sheet" style="max-height:95vh">
+    <div class="handle"></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+      <div style="font-size:30px" id="gdEmoji"></div>
+      <div>
+        <div style="font-size:20px;font-weight:700" id="gdName"></div>
+        <div style="font-size:13px;color:var(--text2)" id="gdMems"></div>
+      </div>
+      <button class="btn btn-p" style="margin-left:auto;padding:8px 14px;font-size:14px" onclick="openAddExpense(curGid)">+ Expense</button>
+    </div>
+    <div class="sg" style="margin-bottom:14px">
+      <div class="sc"><div class="sl">Total</div><div class="sv a" id="gdTotal">₹0</div></div>
+      <div class="sc"><div class="sl">Unpaid</div><div class="sv r" id="gdUnpaid">₹0</div></div>
+    </div>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">BALANCES</div>
+    <div class="card" style="padding:0 18px;margin-bottom:14px"><div id="gdBal"></div></div>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">EXPENSES</div>
+    <div class="card" style="padding:0 18px"><div id="gdExp"></div></div>
+  </div>
+</div>
+
+<!-- DRIVE SHEET -->
+<div class="mbg" id="driveSheet">
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="stitle">Connect Google Drive</div>
+    <div style="text-align:center;padding:8px 0 20px">
+      <div style="font-size:56px;margin-bottom:14px">📂</div>
+      <div style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:20px">All your data saves to a file in <strong style="color:var(--text)">splitease_data.json</strong> in your Google Drive. Works across devices. Your data stays private.</div>
+    </div>
+    <div class="fg"><label class="fl">Google OAuth Client ID</label><input class="fi" id="gClientId" placeholder="xxxxx.apps.googleusercontent.com" type="text"></div>
+    <div style="background:var(--amber-light);border-radius:var(--rsm);padding:14px;margin-bottom:16px;font-size:13px;color:var(--amber);line-height:1.6">
+      📋 <strong>Setup:</strong> Go to <a href="https://console.cloud.google.com" target="_blank" style="color:var(--amber)">console.cloud.google.com</a> → New Project → Enable Drive API → Create OAuth 2.0 Client ID (Web) → Add this page's URL as authorized origin.
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <button class="btn btn-g btn-fw" onclick="localMode()">📱 Local Only</button>
+      <button class="btn btn-p btn-fw" onclick="connectDrive()">🔗 Connect</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== STATE =====================
+let S = { groups:[], expenses:[], cfg:{ curr:'INR', driveOk:false, cid:'', lastSync:null, localMode:false } };
+let curGid = null, splitMode = 'equal', selEmoji = '🏖️', editGid = null, pendingMembers = [];
+let gToken = null, driveFileId = null, syncTimer = null;
+const CURR = {INR:'₹',USD:'$',EUR:'€',GBP:'£',AED:'د',SGD:'S$',JPY:'¥',CAD:'C$',AUD:'A$',CHF:'₣',MYR:'RM',THB:'฿'};
+const CATCLR = {'Food & Dining':'#f59e0b','Travel':'#3b82f6','Stay':'#8b5cf6','Shopping':'#ec4899','Entertainment':'#22c55e','Transport':'#14b8a6','Utilities':'#f97316','Medical':'#ef4444','Other':'#6b7280'};
+const CATEM = {'Food & Dining':'🍕','Travel':'✈️','Stay':'🏨','Shopping':'🛒','Entertainment':'🎉','Transport':'🚗','Utilities':'💡','Medical':'💊','Other':'📦'};
+const EMOJIS = ['🏖️','✈️','🍕','🏠','🎉','🚗','💼','👨‍👩‍👧','🎮','🏃','🛒','❤️','⚽','🎸','📚','💊','🌏','🎓'];
+const AVC = ['av-1','av-2','av-3','av-4','av-5','av-6'];
+
+// ===================== INIT =====================
+function init() {
+  loadLocal();
+  initEmojiPicker();
+  renderHome();
+  renderAllGroups();
+  updateDriveUI();
+}
+
+function loadLocal() {
+  try { const d = localStorage.getItem('se_v2'); if(d) S = {...S,...JSON.parse(d)}; } catch(e){}
+}
+
+function saveMem() {
+  try { localStorage.setItem('se_v2', JSON.stringify(S)); } catch(e){}
+  scheduleDriveSync();
+}
+
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function fAmt(n,curr) { const s=(CURR[curr||S.cfg.curr]||'₹'); return s+(n||0).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+function fDate(ts) { return new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'}); }
+function initials(name) { return name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2); }
+
+// ===================== NAVIGATION =====================
+function goTo(pg) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+pg).classList.add('active');
+  document.getElementById('nav-'+pg).classList.add('active');
+  if(pg==='charts') renderCharts();
+  if(pg==='home') renderHome();
+  if(pg==='groups') renderAllGroups();
+}
+
+// ===================== SHEETS =====================
+function openSheet(id) { document.getElementById(id).classList.add('open'); }
+function closeSheet(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.mbg').forEach(b=>b.addEventListener('click',e=>{if(e.target===b)b.classList.remove('open');}));
+
+// ===================== TOAST =====================
+function toast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ===================== EMOJI PICKER =====================
+function initEmojiPicker() {
+  document.getElementById('emojiPick').innerHTML = EMOJIS.map(e=>
+    `<div class="chip${e===selEmoji?' active':''}" onclick="pickEmoji(this,'${e}')">${e}</div>`
+  ).join('');
+}
+
+function pickEmoji(el,e) {
+  document.querySelectorAll('#emojiPick .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active'); selEmoji=e;
+}
+
+// ===================== GROUP MANAGEMENT =====================
+function addMemKey(e) {
+  if(e.key==='Enter'||e.key===',') {
+    e.preventDefault();
+    const v=e.target.value.replace(',','').trim();
+    if(v && !pendingMembers.includes(v)) { pendingMembers.push(v); e.target.value=''; renderMemChips(); }
+  }
+}
+
+function renderMemChips() {
+  document.getElementById('memChips').innerHTML = pendingMembers.map((m,i)=>
+    `<div class="chip active">${m} <span style="cursor:pointer;font-size:16px;margin-left:2px" onclick="remMem(${i})">×</span></div>`
+  ).join('');
+}
+
+function remMem(i) { pendingMembers.splice(i,1); renderMemChips(); }
+
+function saveGroup() {
+  const name=document.getElementById('gName').value.trim();
+  if(!name) { toast('Enter a group name'); return; }
+  const members=['You',...pendingMembers.filter(m=>m!=='You')];
+  if(editGid) {
+    const g=S.groups.find(g=>g.id===editGid);
+    if(g){g.name=name;g.emoji=selEmoji;g.members=members;}
+    editGid=null;
+  } else {
+    S.groups.push({id:uid(),name,emoji:selEmoji,members,createdAt:Date.now()});
+  }
+  saveMem(); closeSheet('gs');
+  pendingMembers=[]; document.getElementById('gName').value=''; renderMemChips();
+  renderHome(); renderAllGroups(); toast('Group saved! 👍');
+}
+
+// ===================== EXPENSE MANAGEMENT =====================
+function openAddExpense(gid=null) {
+  if(!S.groups.length) { toast('Create a group first!'); openSheet('gs'); return; }
+  const sel=document.getElementById('eGroup');
+  sel.innerHTML=S.groups.map(g=>`<option value="${g.id}">${g.emoji} ${g.name}</option>`).join('');
+  if(gid) sel.value=gid;
+  updateExpenseMembers();
+  openSheet('es');
+}
+
+function updateExpenseMembers() {
+  const g=S.groups.find(g=>g.id===document.getElementById('eGroup').value);
+  if(!g) return;
+  document.getElementById('ePaidBy').innerHTML=g.members.map(m=>`<option value="${m}">${m}</option>`).join('');
+  renderSplitList();
+}
+
+function setSplitMode(m) { splitMode=m; renderSplitList(); }
+
+function renderSplitList() {
+  const g=S.groups.find(g=>g.id===document.getElementById('eGroup').value);
+  if(!g) return;
+  const amt=parseFloat(document.getElementById('eAmt').value)||0;
+  const n=g.members.length;
+  document.getElementById('splitList').innerHTML = g.members.map((m,i)=>{
+    const av=AVC[i%AVC.length]; const ini=initials(m);
+    let right='';
+    if(splitMode==='equal') right=`<span style="font-size:13px;font-weight:600;color:var(--text2)">${CURR[document.getElementById('eCurr').value]||'₹'}${(amt/n).toFixed(2)}</span>`;
+    else right=`<div class="msh"><input class="fi" type="number" placeholder="${splitMode==='pct'?'%':'0'}" min="0" ${splitMode==='pct'?'max="100"':''} step="0.01" id="sp${i}" data-m="${m}"></div>`;
+    return `<div class="mr">
+      <div class="av ${av}">${ini}</div>
+      <div class="mn">${m}</div>
+      <div class="mck on" id="ck${i}" onclick="toggleMck(${i},this)">✓</div>
+      ${right}
+    </div>`;
+  }).join('');
+}
+
+function toggleMck(i,el) { el.classList.toggle('on'); el.textContent=el.classList.contains('on')?'✓':''; }
+
+function pickCat(el) { document.querySelectorAll('#catChips .chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); }
+function pickToggle(el,id) { document.getElementById(id).querySelectorAll('.to').forEach(b=>b.classList.remove('active')); el.classList.add('active'); }
+
+function saveExpense() {
+  const gid=document.getElementById('eGroup').value;
+  const title=document.getElementById('eTitle').value.trim();
+  const amt=parseFloat(document.getElementById('eAmt').value);
+  if(!title){toast('Add a title');return;}
+  if(!amt||amt<=0){toast('Add an amount');return;}
+  const g=S.groups.find(g=>g.id===gid);
+  const catEl=document.querySelector('#catChips .chip.active');
+  const paidEl=document.querySelector('#paidTg .to.active');
+  const splits={};
+  g.members.forEach((m,i)=>{
+    const ck=document.getElementById('ck'+i);
+    if(!ck||!ck.classList.contains('on')) return;
+    if(splitMode==='equal'){
+      const inc=g.members.filter((_,j)=>document.getElementById('ck'+j)?.classList.contains('on'));
+      splits[m]=amt/inc.length;
+    } else {
+      const inp=document.getElementById('sp'+i);
+      splits[m]=splitMode==='pct'?amt*(parseFloat(inp?.value||0)/100):parseFloat(inp?.value||0);
+    }
+  });
+  S.expenses.push({
+    id:uid(),groupId:gid,title,desc:document.getElementById('eDesc').value,
+    amount:amt,currency:document.getElementById('eCurr').value,
+    category:catEl?.dataset.v||'Other',paidBy:document.getElementById('ePaidBy').value,
+    isPaid:paidEl?.dataset.v==='paid',splitMode,splits,createdAt:Date.now()
+  });
+  saveMem(); closeSheet('es');
+  document.getElementById('eTitle').value=''; document.getElementById('eAmt').value=''; document.getElementById('eDesc').value='';
+  renderHome(); toast('Expense added! 🎉');
+  if(curGid) openGroupDetail(curGid);
+}
+
+function delExpense(id) {
+  if(!confirm('Delete this expense?')) return;
+  S.expenses=S.expenses.filter(e=>e.id!==id);
+  saveMem(); renderHome(); toast('Deleted');
+  if(curGid) openGroupDetail(curGid);
+}
+
+// ===================== RENDER HOME =====================
+function renderHome() {
+  const total=S.expenses.reduce((s,e)=>s+e.amount,0);
+  const owe=S.expenses.filter(e=>!e.isPaid&&e.paidBy!=='You').reduce((s,e)=>s+(e.splits?.['You']||0),0);
+  const owed=S.expenses.filter(e=>!e.isPaid&&e.paidBy==='You').reduce((s,e)=>s+e.amount-(e.splits?.['You']||0),0);
+  document.getElementById('hTotal').textContent=fAmt(total);
+  document.getElementById('hOwe').textContent=fAmt(owe);
+  document.getElementById('hOwed').textContent=fAmt(owed);
+  document.getElementById('hGroups').textContent=S.groups.length;
+  const gh=document.getElementById('groupsHome');
+  if(!S.groups.length) {
+    gh.innerHTML=`<div class="empty"><div class="empty-i">👥</div><div class="empty-t">No groups yet</div><div class="empty-s">Create a group to start tracking shared expenses</div></div>`;
+  } else {
+    gh.innerHTML=S.groups.map(g=>groupHTML(g)).join('');
+  }
+  const recent=[...S.expenses].sort((a,b)=>b.createdAt-a.createdAt).slice(0,5);
+  const rh=document.getElementById('recentHome');
+  if(!recent.length){rh.style.display='none';}
+  else{rh.style.display='';rh.innerHTML=recent.map(expHTML).join('');}
+}
+
+function groupHTML(g) {
+  const exps=S.expenses.filter(e=>e.groupId===g.id);
+  const total=exps.reduce((s,e)=>s+e.amount,0);
+  const up=exps.filter(e=>!e.isPaid).length;
+  return `<div class="gc" onclick="openGroupDetail('${g.id}')">
+    <div class="ga">${g.emoji}</div>
+    <div class="gi">
+      <div class="gn">${g.name}</div>
+      <div class="gm">${g.members.length} members · ${exps.length} expenses${up?` · <span style="color:var(--red)">${up} unpaid</span>`:''}</div>
+    </div>
+    <div class="gamt"><div class="a">${fAmt(total)}</div><div class="l">total</div></div>
+  </div>`;
+}
+
+function expHTML(e) {
+  const g=S.groups.find(gr=>gr.id===e.groupId);
+  const sym=CURR[e.currency]||'₹';
+  return `<div class="ei">
+    <div class="eic" style="background:${CATCLR[e.category]||'#6b7280'}22">${CATEM[e.category]||'📦'}</div>
+    <div class="eii">
+      <div class="eit">${e.title}</div>
+      <div class="eim">${g?.name||''} · ${e.paidBy} · ${fDate(e.createdAt)}</div>
+    </div>
+    <div class="eir">
+      <div class="eia">${sym}${e.amount.toFixed(2)}</div>
+      <div class="eip ${e.isPaid?'p-y':'p-n'}">${e.isPaid?'Paid':'Unpaid'}</div>
+    </div>
+  </div>`;
+}
+
+// ===================== GROUP DETAIL =====================
+function openGroupDetail(gid) {
+  curGid=gid;
+  const g=S.groups.find(gr=>gr.id===gid);
+  if(!g) return;
+  const exps=S.expenses.filter(e=>e.groupId===gid);
+  const total=exps.reduce((s,e)=>s+e.amount,0);
+  const unpaid=exps.filter(e=>!e.isPaid).reduce((s,e)=>s+e.amount,0);
+  document.getElementById('gdEmoji').textContent=g.emoji;
+  document.getElementById('gdName').textContent=g.name;
+  document.getElementById('gdMems').textContent=g.members.join(', ');
+  document.getElementById('gdTotal').textContent=fAmt(total);
+  document.getElementById('gdUnpaid').textContent=fAmt(unpaid);
+  const bals=calcBalances(g,exps);
+  const bEl=document.getElementById('gdBal');
+  bEl.innerHTML=!bals.length
+    ?`<div style="font-size:14px;color:var(--text2);text-align:center;padding:12px 0">✅ All settled up!</div>`
+    :bals.map(b=>`<div class="bi"><div style="font-size:16px">→</div><div class="bt"><strong>${b.from}</strong> owes <strong>${b.to}</strong></div><div class="ba">${fAmt(b.amount)}</div></div>`).join('');
+  const eEl=document.getElementById('gdExp');
+  eEl.innerHTML=!exps.length
+    ?`<div style="font-size:14px;color:var(--text2);text-align:center;padding:16px 0">No expenses yet</div>`
+    :[...exps].sort((a,b)=>b.createdAt-a.createdAt).map(e=>`
+      <div class="ei">
+        <div class="eic" style="background:${CATCLR[e.category]}22">${CATEM[e.category]||'📦'}</div>
+        <div class="eii"><div class="eit">${e.title}</div><div class="eim">${e.category} · ${e.paidBy} · ${fDate(e.createdAt)}</div></div>
+        <div class="eir">
+          <div class="eia">${CURR[e.currency]||'₹'}${e.amount.toFixed(2)}</div>
+          <div class="eip ${e.isPaid?'p-y':'p-n'}">${e.isPaid?'Paid':'Unpaid'}</div>
+          <div style="margin-top:4px"><span onclick="delExpense('${e.id}')" style="font-size:11px;color:var(--red);cursor:pointer">Delete</span></div>
+        </div>
+      </div>`).join('');
+  openSheet('gd');
+}
+
+function calcBalances(g,exps) {
+  const net={};
+  g.members.forEach(m=>net[m]=0);
+  exps.filter(e=>!e.isPaid).forEach(e=>{
+    if(net[e.paidBy]!==undefined) net[e.paidBy]+=e.amount;
+    Object.entries(e.splits||{}).forEach(([m,v])=>{if(net[m]!==undefined)net[m]-=v;});
+  });
+  const give=Object.entries(net).filter(([,v])=>v>0).map(([k,v])=>({n:k,a:v})).sort((a,b)=>b.a-a.a);
+  const take=Object.entries(net).filter(([,v])=>v<0).map(([k,v])=>({n:k,a:-v})).sort((a,b)=>b.a-a.a);
+  const res=[]; let gi=0,ti=0;
+  while(gi<give.length&&ti<take.length) {
+    const mn=Math.min(give[gi].a,take[ti].a);
+    if(mn>0.01) res.push({from:take[ti].n,to:give[gi].n,amount:mn});
+    give[gi].a-=mn; take[ti].a-=mn;
+    if(give[gi].a<0.01)gi++;
+    if(take[ti].a<0.01)ti++;
+  }
+  return res;
+}
+
+// ===================== RENDER ALL GROUPS =====================
+function renderAllGroups() {
+  const el=document.getElementById('groupsAll');
+  el.innerHTML=!S.groups.length
+    ?`<div class="empty"><div class="empty-i">👥</div><div class="empty-t">No groups</div><div class="empty-s">Tap "+ New" to create your first group</div></div>`
+    :S.groups.map(g=>groupHTML(g)).join('');
+  // Update chart filter
+  const cf=document.getElementById('chartFilter');
+  const cv=cf.value;
+  cf.innerHTML='<option value="all">All Groups</option>'+S.groups.map(g=>`<option value="${g.id}">${g.emoji} ${g.name}</option>`).join('');
+  cf.value=cv;
+}
+
+// ===================== CHARTS =====================
+const chartInst={};
+function destroyChart(id){const ex=Chart.getChart(document.getElementById(id));if(ex)ex.destroy();}
+function renderCharts() {
+  const gid=document.getElementById('chartFilter').value;
+  const exps=gid==='all'?S.expenses:S.expenses.filter(e=>e.groupId===gid);
+  const dark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const tc=dark?'#8888a8':'#6b6b80', gc=dark?'rgba(255,255,255,.05)':'rgba(0,0,0,.05)';
+  // Category doughnut
+  const catT={};
+  exps.forEach(e=>{catT[e.category]=(catT[e.category]||0)+e.amount;});
+  destroyChart('catC');
+  if(Object.keys(catT).length) new Chart(document.getElementById('catC'),{
+    type:'doughnut',
+    data:{labels:Object.keys(catT),datasets:[{data:Object.values(catT),backgroundColor:Object.keys(catT).map(c=>CATCLR[c]||'#6b7280'),borderWidth:2,borderColor:dark?'#1d1d2e':'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:tc,font:{size:11},boxWidth:10,padding:10}}}}
+  });
+  // Paid bar
+  const pA=exps.filter(e=>e.isPaid).reduce((s,e)=>s+e.amount,0);
+  const uA=exps.filter(e=>!e.isPaid).reduce((s,e)=>s+e.amount,0);
+  destroyChart('paidC');
+  new Chart(document.getElementById('paidC'),{
+    type:'bar',
+    data:{labels:['Paid','Unpaid'],datasets:[{data:[pA,uA],backgroundColor:['#16a34a','#dc2626'],borderRadius:8,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:tc,callback:v=>fAmt(v)},grid:{color:gc}},x:{ticks:{color:tc},grid:{display:false}}}}
+  });
+  // Monthly trend
+  const mon={};
+  exps.forEach(e=>{const d=new Date(e.createdAt),k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;mon[k]=(mon[k]||0)+e.amount;});
+  const mKeys=Object.keys(mon).sort();
+  destroyChart('trendC');
+  new Chart(document.getElementById('trendC'),{
+    type:'line',
+    data:{labels:mKeys.map(m=>{const[y,mo]=m.split('-');return new Date(y,mo-1).toLocaleString('default',{month:'short',year:'2-digit'});}),datasets:[{data:mKeys.map(m=>mon[m]),borderColor:'#6c63ff',backgroundColor:'rgba(108,99,255,.12)',fill:true,tension:.4,pointBackgroundColor:'#6c63ff',pointRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:tc,callback:v=>fAmt(v)},grid:{color:gc}},x:{ticks:{color:tc,autoSkip:true},grid:{display:false}}}}
+  });
+  // Per member
+  const memT={};
+  exps.forEach(e=>{Object.entries(e.splits||{}).forEach(([m,v])=>{memT[m]=(memT[m]||0)+v;});});
+  destroyChart('memberC');
+  if(Object.keys(memT).length) new Chart(document.getElementById('memberC'),{
+    type:'bar',
+    data:{labels:Object.keys(memT),datasets:[{data:Object.values(memT),backgroundColor:['#6c63ff','#22c55e','#f59e0b','#3b82f6','#ec4899','#14b8a6'],borderRadius:8,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:tc,callback:v=>fAmt(v)},grid:{color:gc}},x:{ticks:{color:tc},grid:{display:false}}}}
+  });
+}
+
+// ===================== GOOGLE DRIVE =====================
+function handleDriveConnect() { openSheet('driveSheet'); }
+
+function localMode() {
+  S.cfg.localMode=true; S.cfg.driveOk=false;
+  saveMem(); closeSheet('driveSheet'); updateDriveUI(); toast('📱 Using local storage');
+}
+
+async function connectDrive() {
+  const cid=document.getElementById('gClientId').value.trim();
+  if(!cid){toast('Enter your Client ID');return;}
+  S.cfg.cid=cid;
+  try {
+    await initGoogleAuth(cid);
+    S.cfg.driveOk=true; saveMem(); updateDriveUI(); closeSheet('driveSheet');
+    await syncDrive();
+  } catch(e) { toast('Connection failed: '+e.message); }
+}
+
+function initGoogleAuth(cid) {
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://accounts.google.com/gsi/client';
+    s.onload=()=>{
+      try {
+        const cl=google.accounts.oauth2.initTokenClient({
+          client_id:cid, scope:'https://www.googleapis.com/auth/drive.file',
+          callback:r=>{ if(r.error)rej(new Error(r.error)); else{gToken=r.access_token;res(r);} }
+        });
+        cl.requestAccessToken();
+      } catch(e){rej(e);}
+    };
+    s.onerror=()=>rej(new Error('Google API load failed'));
+    document.head.appendChild(s);
+  });
+}
+
+async function syncDrive() {
+  if(!gToken){if(S.cfg.cid){toast('Reconnecting...');try{await initGoogleAuth(S.cfg.cid);}catch(e){toast('Drive sync failed');return;}}else{toast('Connect Drive first');return;}}
+  try {
+    const body=JSON.stringify(S);
+    if(!driveFileId) {
+      const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=name='splitease_data.json'&spaces=drive&fields=files(id)`,{headers:{Authorization:'Bearer '+gToken}});
+      const sj=await sr.json();
+      if(sj.files?.length) driveFileId=sj.files[0].id;
+      else {
+        const mr=await fetch('https://www.googleapis.com/drive/v3/files',{method:'POST',headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},body:JSON.stringify({name:'splitease_data.json',mimeType:'application/json'})});
+        driveFileId=(await mr.json()).id;
+      }
+    }
+    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,{method:'PATCH',headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},body});
+    S.cfg.lastSync=new Date().toISOString();
+    localStorage.setItem('se_v2',JSON.stringify(S));
+    updateDriveUI(); toast('☁️ Synced to Drive!');
+  } catch(e){toast('Sync error: '+e.message);}
+}
+
+function scheduleDriveSync() {
+  if(!gToken) return;
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(syncDrive,4000);
+}
+
+function updateDriveUI() {
+  const btn=document.getElementById('driveBtn');
+  const lbl=document.getElementById('driveLbl');
+  const ico=document.getElementById('driveIco');
+  const sub=document.getElementById('driveSetSub');
+  const ss=document.getElementById('syncSub');
+  if(gToken){btn.className='drive-pill on';lbl.textContent='Synced';ico.textContent='✅';sub.textContent='Connected to Google Drive';}
+  else if(S.cfg.localMode){btn.className='drive-pill off';lbl.textContent='Local';ico.textContent='📱';sub.textContent='Local storage mode';}
+  else{btn.className='drive-pill off';lbl.textContent='Drive';ico.textContent='📂';sub.textContent='Not connected';}
+  if(ss) ss.textContent=S.cfg.lastSync?'Last sync: '+new Date(S.cfg.lastSync).toLocaleString():'Last sync: Never';
+}
+
+// ===================== EXPORT =====================
+function exportCSV() {
+  const rows=[['Group','Title','Description','Amount','Currency','Category','Paid By','Status','Split Mode','Date']];
+  S.expenses.forEach(e=>{
+    const g=S.groups.find(gr=>gr.id===e.groupId);
+    rows.push([g?.name||'',e.title,e.desc||'',e.amount,e.currency,e.category,e.paidBy,e.isPaid?'Paid':'Unpaid',e.splitMode,new Date(e.createdAt).toLocaleDateString()]);
+  });
+  const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='splitease_expenses.csv'; a.click();
+  toast('📊 CSV downloaded!');
+}
+
+function changeCurrency() {
+  const opts=Object.keys(CURR).join(', ');
+  const c=prompt(`Enter currency code:\n${opts}`,'INR');
+  if(c&&CURR[c.toUpperCase()]){S.cfg.curr=c.toUpperCase();saveMem();document.getElementById('currSub').textContent=c.toUpperCase()+' – '+CURR[c.toUpperCase()];toast('Currency updated');}
+}
+
+// ===================== PWA =====================
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+init();
+</script>
+</body>
+</html>
