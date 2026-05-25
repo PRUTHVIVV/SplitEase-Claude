@@ -12,6 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 <style>
 :root {
   --bg: #f6f5f1;
@@ -197,9 +199,9 @@ textarea.fi{min-height:72px;resize:vertical}
   <div class="logo">💰</div>
   <div class="app-name">Split<span>Ease</span></div>
   <div class="hd-right">
-    <button class="drive-pill off" id="driveBtn" onclick="handleDriveConnect()">
-      <span id="driveIco">📂</span>
-      <span id="driveLbl">Drive</span>
+    <button class="drive-pill off" id="driveBtn" onclick="handleFirebaseConnect()">
+      <span id="driveIco">🔥</span>
+      <span id="driveLbl">Firebase</span>
     </button>
   </div>
 </header>
@@ -243,9 +245,9 @@ textarea.fi{min-height:72px;resize:vertical}
   <div class="page" id="page-settings">
     <div class="sh" style="margin-top:4px"><div class="st">Settings</div></div>
     <div class="card" style="padding:0 18px">
-      <div class="sr" onclick="handleDriveConnect()">
-        <div class="si" style="background:var(--blue-light)">📂</div>
-        <div class="sx"><div class="st2">Google Drive Sync</div><div class="ss" id="driveSetSub">Not connected</div></div>
+      <div class="sr" onclick="handleFirebaseConnect()">
+        <div class="si" style="background:var(--amber-light)">🔥</div>
+        <div class="sx"><div class="st2">Firebase Sync</div><div class="ss" id="driveSetSub">Not connected</div></div>
         <div class="sa2">›</div>
       </div>
       <div class="sr" onclick="exportCSV()">
@@ -256,11 +258,6 @@ textarea.fi{min-height:72px;resize:vertical}
       <div class="sr" onclick="changeCurrency()">
         <div class="si" style="background:var(--accent-light)">💱</div>
         <div class="sx"><div class="st2">Default Currency</div><div class="ss" id="currSub">INR – ₹</div></div>
-        <div class="sa2">›</div>
-      </div>
-      <div class="sr" onclick="syncDrive()">
-        <div class="si" style="background:var(--teal-light)">🔄</div>
-        <div class="sx"><div class="st2">Sync to Drive</div><div class="ss" id="syncSub">Last sync: Never</div></div>
         <div class="sa2">›</div>
       </div>
     </div>
@@ -387,31 +384,31 @@ textarea.fi{min-height:72px;resize:vertical}
   </div>
 </div>
 
-<!-- DRIVE SHEET -->
+<!-- FIREBASE SHEET -->
 <div class="mbg" id="driveSheet">
   <div class="sheet">
     <div class="handle"></div>
-    <div class="stitle">Connect Google Drive</div>
+    <div class="stitle">Connect Firebase Database</div>
     <div style="text-align:center;padding:8px 0 20px">
-      <div style="font-size:56px;margin-bottom:14px">📂</div>
-      <div style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:20px">All your data saves to a file in <strong style="color:var(--text)">splitease_data.json</strong> in your Google Drive. Works across devices. Your data stays private.</div>
+      <div style="font-size:56px;margin-bottom:14px">🔥</div>
+      <div style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:20px">Sync your data in real-time across all devices for free using Firebase Realtime Database.</div>
     </div>
-    <div class="fg"><label class="fl">Google OAuth Client ID</label><input class="fi" id="gClientId" placeholder="xxxxx.apps.googleusercontent.com" type="text"></div>
+    <div class="fg"><label class="fl">Firebase Configuration (JSON or Database URL)</label><textarea class="fi" id="fbConfigStr" placeholder='https://splitease-....firebasedatabase.app/' rows="6" style="font-family:monospace;font-size:12px;"></textarea></div>
     <div style="background:var(--amber-light);border-radius:var(--rsm);padding:14px;margin-bottom:16px;font-size:13px;color:var(--amber);line-height:1.6">
-      📋 <strong>Setup:</strong> Go to <a href="https://console.cloud.google.com" target="_blank" style="color:var(--amber)">console.cloud.google.com</a> → New Project → Enable Drive API → Create OAuth 2.0 Client ID (Web) → Add this page's URL as authorized origin.
+      📋 <strong>Setup:</strong> Go to <a href="https://console.firebase.google.com" target="_blank" style="color:var(--amber)">console.firebase.google.com</a> → Add Project → Build → Realtime Database (Test Mode) → Project Settings → Copy config JSON.
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <button class="btn btn-g btn-fw" onclick="localMode()">📱 Local Only</button>
-      <button class="btn btn-p btn-fw" onclick="connectDrive()">🔗 Connect</button>
+      <button class="btn btn-p btn-fw" onclick="connectFirebase()">🔗 Connect</button>
     </div>
   </div>
 </div>
 
 <script>
 // ===================== STATE =====================
-let S = { groups:[], expenses:[], cfg:{ curr:'INR', driveOk:false, cid:'', lastSync:null, localMode:false } };
+let S = { groups:[], expenses:[], cfg:{ curr:'INR', fbConfig:null, localMode:false } };
 let curGid = null, splitMode = 'equal', selEmoji = '🏖️', editGid = null, pendingMembers = [];
-let gToken = null, driveFileId = null, syncTimer = null;
+let fbDb = null;
 const CURR = {INR:'₹',USD:'$',EUR:'€',GBP:'£',AED:'د',SGD:'S$',JPY:'¥',CAD:'C$',AUD:'A$',CHF:'₣',MYR:'RM',THB:'฿'};
 const CATCLR = {'Food & Dining':'#f59e0b','Travel':'#3b82f6','Stay':'#8b5cf6','Shopping':'#ec4899','Entertainment':'#22c55e','Transport':'#14b8a6','Utilities':'#f97316','Medical':'#ef4444','Other':'#6b7280'};
 const CATEM = {'Food & Dining':'🍕','Travel':'✈️','Stay':'🏨','Shopping':'🛒','Entertainment':'🎉','Transport':'🚗','Utilities':'💡','Medical':'💊','Other':'📦'};
@@ -424,16 +421,18 @@ function init() {
   initEmojiPicker();
   renderHome();
   renderAllGroups();
-  updateDriveUI();
+  initFirebase();
 }
 
 function loadLocal() {
   try { const d = localStorage.getItem('se_v2'); if(d) S = {...S,...JSON.parse(d)}; } catch(e){}
+  if(S.cfg.fbConfig && document.getElementById('fbConfigStr')) {
+    document.getElementById('fbConfigStr').value = JSON.stringify(S.cfg.fbConfig, null, 2);
+  }
 }
 
 function saveMem() {
   try { localStorage.setItem('se_v2', JSON.stringify(S)); } catch(e){}
-  scheduleDriveSync();
 }
 
 function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
@@ -499,10 +498,15 @@ function saveGroup() {
   const members=['You',...pendingMembers.filter(m=>m!=='You')];
   if(editGid) {
     const g=S.groups.find(g=>g.id===editGid);
-    if(g){g.name=name;g.emoji=selEmoji;g.members=members;}
+    if(g){
+      g.name=name;g.emoji=selEmoji;g.members=members;
+      if (fbDb) fbDb.ref('groups/' + g.id).update({name, emoji:selEmoji, members});
+    }
     editGid=null;
   } else {
-    S.groups.push({id:uid(),name,emoji:selEmoji,members,createdAt:Date.now()});
+    const newG = {id:uid(),name,emoji:selEmoji,members,createdAt:Date.now(),isDeleted:false};
+    S.groups.push(newG);
+    if (fbDb) fbDb.ref('groups/' + newG.id).set(newG);
   }
   saveMem(); closeSheet('gs');
   pendingMembers=[]; document.getElementById('gName').value=''; renderMemChips();
@@ -511,9 +515,10 @@ function saveGroup() {
 
 // ===================== EXPENSE MANAGEMENT =====================
 function openAddExpense(gid=null) {
-  if(!S.groups.length) { toast('Create a group first!'); openSheet('gs'); return; }
+  const activeGroups = S.groups.filter(g=>!g.isDeleted);
+  if(!activeGroups.length) { toast('Create a group first!'); openSheet('gs'); return; }
   const sel=document.getElementById('eGroup');
-  sel.innerHTML=S.groups.map(g=>`<option value="${g.id}">${g.emoji} ${g.name}</option>`).join('');
+  sel.innerHTML=activeGroups.map(g=>`<option value="${g.id}">${g.emoji} ${g.name}</option>`).join('');
   if(gid) sel.value=gid;
   updateExpenseMembers();
   openSheet('es');
@@ -573,12 +578,14 @@ function saveExpense() {
       splits[m]=splitMode==='pct'?amt*(parseFloat(inp?.value||0)/100):parseFloat(inp?.value||0);
     }
   });
-  S.expenses.push({
+  const newE = {
     id:uid(),groupId:gid,title,desc:document.getElementById('eDesc').value,
     amount:amt,currency:document.getElementById('eCurr').value,
     category:catEl?.dataset.v||'Other',paidBy:document.getElementById('ePaidBy').value,
-    isPaid:paidEl?.dataset.v==='paid',splitMode,splits,createdAt:Date.now()
-  });
+    isPaid:paidEl?.dataset.v==='paid',splitMode,splits,createdAt:Date.now(),isDeleted:false
+  };
+  S.expenses.push(newE);
+  if (fbDb) fbDb.ref('expenses/' + newE.id).set(newE);
   saveMem(); closeSheet('es');
   document.getElementById('eTitle').value=''; document.getElementById('eAmt').value=''; document.getElementById('eDesc').value='';
   renderHome(); toast('Expense added! 🎉');
@@ -587,34 +594,41 @@ function saveExpense() {
 
 function delExpense(id) {
   if(!confirm('Delete this expense?')) return;
-  S.expenses=S.expenses.filter(e=>e.id!==id);
+  const e = S.expenses.find(x=>x.id===id);
+  if(e) {
+    e.isDeleted = true;
+    e.deletedAt = Date.now();
+    if (fbDb) fbDb.ref('expenses/' + id).update({isDeleted: true, deletedAt: e.deletedAt});
+  }
   saveMem(); renderHome(); toast('Deleted');
   if(curGid) openGroupDetail(curGid);
 }
 
 // ===================== RENDER HOME =====================
 function renderHome() {
-  const total=S.expenses.reduce((s,e)=>s+e.amount,0);
-  const owe=S.expenses.filter(e=>!e.isPaid&&e.paidBy!=='You').reduce((s,e)=>s+(e.splits?.['You']||0),0);
-  const owed=S.expenses.filter(e=>!e.isPaid&&e.paidBy==='You').reduce((s,e)=>s+e.amount-(e.splits?.['You']||0),0);
+  const activeExps = S.expenses.filter(e=>!e.isDeleted);
+  const activeGroups = S.groups.filter(g=>!g.isDeleted);
+  const total=activeExps.reduce((s,e)=>s+e.amount,0);
+  const owe=activeExps.filter(e=>!e.isPaid&&e.paidBy!=='You').reduce((s,e)=>s+(e.splits?.['You']||0),0);
+  const owed=activeExps.filter(e=>!e.isPaid&&e.paidBy==='You').reduce((s,e)=>s+e.amount-(e.splits?.['You']||0),0);
   document.getElementById('hTotal').textContent=fAmt(total);
   document.getElementById('hOwe').textContent=fAmt(owe);
   document.getElementById('hOwed').textContent=fAmt(owed);
-  document.getElementById('hGroups').textContent=S.groups.length;
+  document.getElementById('hGroups').textContent=activeGroups.length;
   const gh=document.getElementById('groupsHome');
-  if(!S.groups.length) {
+  if(!activeGroups.length) {
     gh.innerHTML=`<div class="empty"><div class="empty-i">👥</div><div class="empty-t">No groups yet</div><div class="empty-s">Create a group to start tracking shared expenses</div></div>`;
   } else {
-    gh.innerHTML=S.groups.map(g=>groupHTML(g)).join('');
+    gh.innerHTML=activeGroups.map(g=>groupHTML(g)).join('');
   }
-  const recent=[...S.expenses].sort((a,b)=>b.createdAt-a.createdAt).slice(0,5);
+  const recent=[...activeExps].sort((a,b)=>b.createdAt-a.createdAt).slice(0,5);
   const rh=document.getElementById('recentHome');
   if(!recent.length){rh.style.display='none';}
   else{rh.style.display='';rh.innerHTML=recent.map(expHTML).join('');}
 }
 
 function groupHTML(g) {
-  const exps=S.expenses.filter(e=>e.groupId===g.id);
+  const exps=S.expenses.filter(e=>e.groupId===g.id && !e.isDeleted);
   const total=exps.reduce((s,e)=>s+e.amount,0);
   const up=exps.filter(e=>!e.isPaid).length;
   return `<div class="gc" onclick="openGroupDetail('${g.id}')">
@@ -648,7 +662,7 @@ function openGroupDetail(gid) {
   curGid=gid;
   const g=S.groups.find(gr=>gr.id===gid);
   if(!g) return;
-  const exps=S.expenses.filter(e=>e.groupId===gid);
+  const exps=S.expenses.filter(e=>e.groupId===gid && !e.isDeleted);
   const total=exps.reduce((s,e)=>s+e.amount,0);
   const unpaid=exps.filter(e=>!e.isPaid).reduce((s,e)=>s+e.amount,0);
   document.getElementById('gdEmoji').textContent=g.emoji;
@@ -699,14 +713,15 @@ function calcBalances(g,exps) {
 
 // ===================== RENDER ALL GROUPS =====================
 function renderAllGroups() {
+  const activeGroups = S.groups.filter(g=>!g.isDeleted);
   const el=document.getElementById('groupsAll');
-  el.innerHTML=!S.groups.length
+  el.innerHTML=!activeGroups.length
     ?`<div class="empty"><div class="empty-i">👥</div><div class="empty-t">No groups</div><div class="empty-s">Tap "+ New" to create your first group</div></div>`
-    :S.groups.map(g=>groupHTML(g)).join('');
+    :activeGroups.map(g=>groupHTML(g)).join('');
   // Update chart filter
   const cf=document.getElementById('chartFilter');
   const cv=cf.value;
-  cf.innerHTML='<option value="all">All Groups</option>'+S.groups.map(g=>`<option value="${g.id}">${g.emoji} ${g.name}</option>`).join('');
+  cf.innerHTML='<option value="all">All Groups</option>'+activeGroups.map(g=>`<option value="${g.id}">${g.emoji} ${g.name}</option>`).join('');
   cf.value=cv;
 }
 
@@ -715,7 +730,8 @@ const chartInst={};
 function destroyChart(id){const ex=Chart.getChart(document.getElementById(id));if(ex)ex.destroy();}
 function renderCharts() {
   const gid=document.getElementById('chartFilter').value;
-  const exps=gid==='all'?S.expenses:S.expenses.filter(e=>e.groupId===gid);
+  let exps=gid==='all'?S.expenses:S.expenses.filter(e=>e.groupId===gid);
+  exps = exps.filter(e=>!e.isDeleted);
   const dark=window.matchMedia('(prefers-color-scheme:dark)').matches;
   const tc=dark?'#8888a8':'#6b6b80', gc=dark?'rgba(255,255,255,.05)':'rgba(0,0,0,.05)';
   // Category doughnut
@@ -757,85 +773,75 @@ function renderCharts() {
   });
 }
 
-// ===================== GOOGLE DRIVE =====================
-function handleDriveConnect() { openSheet('driveSheet'); }
+// ===================== FIREBASE SYNC =====================
+function handleFirebaseConnect() { openSheet('driveSheet'); }
 
 function localMode() {
-  S.cfg.localMode=true; S.cfg.driveOk=false;
-  saveMem(); closeSheet('driveSheet'); updateDriveUI(); toast('📱 Using local storage');
+  S.cfg.localMode=true; S.cfg.fbConfig=null; fbDb=null;
+  saveMem(); closeSheet('driveSheet'); updateFirebaseUI(); toast('📱 Using local storage');
 }
 
-async function connectDrive() {
-  const cid=document.getElementById('gClientId').value.trim();
-  if(!cid){toast('Enter your Client ID');return;}
-  S.cfg.cid=cid;
+function connectFirebase() {
+  const cfgStr=document.getElementById('fbConfigStr').value.trim();
+  if(!cfgStr){toast('Enter Firebase Config or URL');return;}
   try {
-    await initGoogleAuth(cid);
-    S.cfg.driveOk=true; saveMem(); updateDriveUI(); closeSheet('driveSheet');
-    await syncDrive();
-  } catch(e) { toast('Connection failed: '+e.message); }
-}
-
-function initGoogleAuth(cid) {
-  return new Promise((res,rej)=>{
-    const s=document.createElement('script');
-    s.src='https://accounts.google.com/gsi/client';
-    s.onload=()=>{
-      try {
-        const cl=google.accounts.oauth2.initTokenClient({
-          client_id:cid, scope:'https://www.googleapis.com/auth/drive.file',
-          callback:r=>{ if(r.error)rej(new Error(r.error)); else{gToken=r.access_token;res(r);} }
-        });
-        cl.requestAccessToken();
-      } catch(e){rej(e);}
-    };
-    s.onerror=()=>rej(new Error('Google API load failed'));
-    document.head.appendChild(s);
-  });
-}
-
-async function syncDrive() {
-  if(!gToken){if(S.cfg.cid){toast('Reconnecting...');try{await initGoogleAuth(S.cfg.cid);}catch(e){toast('Drive sync failed');return;}}else{toast('Connect Drive first');return;}}
-  try {
-    const body=JSON.stringify(S);
-    if(!driveFileId) {
-      const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=name='splitease_data.json'&spaces=drive&fields=files(id)`,{headers:{Authorization:'Bearer '+gToken}});
-      const sj=await sr.json();
-      if(sj.files?.length) driveFileId=sj.files[0].id;
-      else {
-        const mr=await fetch('https://www.googleapis.com/drive/v3/files',{method:'POST',headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},body:JSON.stringify({name:'splitease_data.json',mimeType:'application/json'})});
-        driveFileId=(await mr.json()).id;
-      }
+    let cfg;
+    if (cfgStr.startsWith('http')) {
+      cfg = { databaseURL: cfgStr };
+    } else {
+      cfg = JSON.parse(cfgStr);
+      if (!cfg.databaseURL) throw new Error("Missing databaseURL in JSON");
     }
-    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,{method:'PATCH',headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},body});
-    S.cfg.lastSync=new Date().toISOString();
-    localStorage.setItem('se_v2',JSON.stringify(S));
-    updateDriveUI(); toast('☁️ Synced to Drive!');
-  } catch(e){toast('Sync error: '+e.message);}
+    S.cfg.fbConfig=cfg;
+    S.cfg.localMode=false;
+    saveMem(); closeSheet('driveSheet');
+    initFirebase();
+    toast('🔥 Connected to Firebase!');
+  } catch(e) { toast('Invalid input: '+e.message); }
 }
 
-function scheduleDriveSync() {
-  if(!gToken) return;
-  clearTimeout(syncTimer);
-  syncTimer=setTimeout(syncDrive,4000);
+function initFirebase() {
+  if(S.cfg.localMode || !S.cfg.fbConfig) { updateFirebaseUI(); return; }
+  try {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(S.cfg.fbConfig);
+    }
+    fbDb = firebase.database();
+    updateFirebaseUI();
+    
+    // Listeners
+    fbDb.ref('groups').on('value', snap => {
+      const data = snap.val() || {};
+      S.groups = Object.values(data);
+      saveMem(); renderHome(); renderAllGroups();
+      if(curGid) openGroupDetail(curGid);
+    });
+    fbDb.ref('expenses').on('value', snap => {
+      const data = snap.val() || {};
+      S.expenses = Object.values(data);
+      saveMem(); renderHome(); renderCharts();
+      if(curGid) openGroupDetail(curGid);
+    });
+  } catch(e) {
+    console.error(e);
+    toast('Firebase Error: ' + e.message);
+  }
 }
 
-function updateDriveUI() {
+function updateFirebaseUI() {
   const btn=document.getElementById('driveBtn');
   const lbl=document.getElementById('driveLbl');
   const ico=document.getElementById('driveIco');
   const sub=document.getElementById('driveSetSub');
-  const ss=document.getElementById('syncSub');
-  if(gToken){btn.className='drive-pill on';lbl.textContent='Synced';ico.textContent='✅';sub.textContent='Connected to Google Drive';}
+  if(fbDb){btn.className='drive-pill on';lbl.textContent='Synced';ico.textContent='🔥';sub.textContent='Connected to Firebase';}
   else if(S.cfg.localMode){btn.className='drive-pill off';lbl.textContent='Local';ico.textContent='📱';sub.textContent='Local storage mode';}
-  else{btn.className='drive-pill off';lbl.textContent='Drive';ico.textContent='📂';sub.textContent='Not connected';}
-  if(ss) ss.textContent=S.cfg.lastSync?'Last sync: '+new Date(S.cfg.lastSync).toLocaleString():'Last sync: Never';
+  else{btn.className='drive-pill off';lbl.textContent='Firebase';ico.textContent='🔥';sub.textContent='Not connected';}
 }
 
 // ===================== EXPORT =====================
 function exportCSV() {
   const rows=[['Group','Title','Description','Amount','Currency','Category','Paid By','Status','Split Mode','Date']];
-  S.expenses.forEach(e=>{
+  S.expenses.filter(e=>!e.isDeleted).forEach(e=>{
     const g=S.groups.find(gr=>gr.id===e.groupId);
     rows.push([g?.name||'',e.title,e.desc||'',e.amount,e.currency,e.category,e.paidBy,e.isPaid?'Paid':'Unpaid',e.splitMode,new Date(e.createdAt).toLocaleDateString()]);
   });
